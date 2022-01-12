@@ -28,9 +28,10 @@ for i in tqdm(range(train.shape[0])):
     frame.append(train_img)
     k += 1
     if k > 25:
-        train_image.append(frame)
-        frame = []
-        k = 0
+        if (k > 3) & (k < 22) & (k % 4 == 0):
+            train_image.append(frame)
+            frame = []
+            k = 0
     
 for i in tqdm(range(test.shape[0])):
     test_img = image.load_img('test/'+test['image'][i], target_size=(108,192,3))
@@ -44,6 +45,7 @@ for i in tqdm(range(test.shape[0])):
         k = 0
 
 X_train = np.array(train_image)
+print(X_train.shape)
 X_test = np.array(test_image)
 
 Y_train = np.zeros((len(X_train),))
