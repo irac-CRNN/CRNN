@@ -114,7 +114,7 @@ model.summary()
 
 hist = model.fit(X_train, Y_train, batch_size=1, epochs=100, shuffle=True, validation_data=(X_test, Y_test))
 
-model.save('model/crnn_model2.h5')
+model.save('model/crnn_model3.h5')
 print('Saved model successfully')
 
 output = model.predict(X_test)
