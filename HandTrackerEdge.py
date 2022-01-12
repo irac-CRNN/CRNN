@@ -377,7 +377,7 @@ class HandTracker:
         So we build this code from the content of the file template_manager_script_*.py which is a python template
         '''
         # Read the template
-        with open(TEMPLATE_MANAGER_SCRIPT_SOLO , 'r') as file: #if self.solo else TEMPLATE_MANAGER_SCRIPT_DUO
+        with open(TEMPLATE_MANAGER_SCRIPT_SOLO, 'r') as file: #  if self.solo else TEMPLATE_MANAGER_SCRIPT_DUO
             template = Template(file.read())
         
         # Perform the substitution
