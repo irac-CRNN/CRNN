@@ -17,7 +17,7 @@ import socket
 model = load_model('model/crnn_model.h5')
 print('Loaded model successfully!')
 
-HOST = '127.0.0.1'
+HOST = 'localhost'
 PORT = 9999
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client_socket.connect((HOST, PORT))
@@ -169,7 +169,7 @@ while True:
     # Draw hands on open3d canvas
     renderer3d.draw(hands)
     # socket message send
-    client_socket.sendall(result.encod())
+    client_socket.sendall(show_res.encode())
     
     # 화면 상에 손이 있을 경우에만 이미지를 캡쳐
     if renderer3d.nb_hands_in_previous_frame == 1:

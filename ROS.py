@@ -7,13 +7,8 @@ from control_msgs.msg import *
 from trajectory_msgs.msg import *   
 import socket
 
-HOST = '127.0.0.1'
+HOST = 'localhost'
 PORT = 9999
-
-server_socket = socket.socket(socket.AF_INET, socket.SO_REUSEADDR, 1)
-server_socket.bind((HOST, PORT))
-server_socket.listen()
-client_socket, addr = server_socket.accept()
 
 def move1():
     g = FollowJointTrajectoryGoal()
@@ -37,23 +32,34 @@ try:
     print "Waiting for server..."
     client.wait_for_server()
     print "Connected to server"    
+
+    server_socket = socket.socket(socket.AF_INET, socket.SO_REUSEADDR, 1)
+    server_socket.bind((HOST, PORT))
+    server_socket.listen()
+    client_socket, addr = server_socket.accept()
+
+    print "Socket connected"
+
+    while True:
+        data = client_socket.recv(1024)
+        if data.decode() == 'clear':
+            P = [0., -1.57, 0., -1.57, -3.14, 0.]
+        if data.decode() == 'down':
+            P = [0., -1.57, -1.57/6., -1.57, -3.14, 0.]
+        if data.decode() == 'left':
+            P = [0.,-1.57+1.57/6, 0., -1.57, -3.14, 0.]
+        if data.decode() == 'rest':
+            P = [0., -1.57, 0., -1.57, -3.14, 0.]
+        if data.decode() == 'right':
+            P = [0.,-1.57-1.57/6, 0., -1.57, -3.14, 0.]
+        if data.decode() == 'up':
+            P = [0., -1.57, 1.57/6., -1.57, -3.14, 0.]  
+        move1()
+
 except KeyboardInterrupt:
     rospy.signal_shutdown("KeyboardInterrupt")
+    server_socket.close()
     raise
 
-while True:
-    data = client_socket.recv(1024)
-    if data.decode() == 0:
-        P = [0., 0., 0., 0., 0., 0.]
-    if data.decode() == 1:
-        P = [0., 0., 0., 0., 0., 0.]
-    if data.decode() == 2:
-        P = [0., 0., 0., 0., 0., 0.]
-    if data.decode() == 3:
-        P = [0., 0., 0., 0., 0., 0.]
-    if data.decode() == 4:
-        P = [0., 0., 0., 0., 0., 0.]
-    if data.decode() == 5:
-        P = [0., 0., 0., 0., 0., 0.]  
-    move1()
+
     
