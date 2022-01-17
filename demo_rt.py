@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import sys
-import time
 sys.path.append("../..")
 from HandTrackerRenderer import HandTrackerRenderer
 from HandTrackerEdge import HandTracker
@@ -9,21 +8,25 @@ from Filters import LandmarksSmoothingFilter
 import argparse
 import numpy as np
 import cv2
-import os
 from o3d_rt import Visu3D
 import numpy as np
 from tensorflow.keras.preprocessing import image
 from tensorflow.keras.models import load_model, Sequential
+import socket
 
 model = load_model('model/crnn_model.h5')
 print('Loaded model successfully!')
+
+HOST = '127.0.0.1'
+PORT = 9999
+client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+client_socket.connect((HOST, PORT))
 
 LINES_HAND = [[0, 1], [1, 2], [2, 3], [3, 4],                   # 엄지
               [0, 5], [5, 6], [6, 7], [7, 8],                   # 검지
               [5, 9], [9, 10], [10, 11], [11, 12],              # 중지
               [9, 13], [13, 14], [14, 15], [15, 16],            # 약지
               [13, 17], [17, 18], [18, 19], [19, 20], [0, 17]]  # 새끼
-
 
 class HandTracker3DRenderer:
     def __init__(self, tracker, mode_3d="image", smoothing=True):
@@ -86,6 +89,9 @@ class HandTracker3DRenderer:
         self.vis3d.render()
         self.nb_hands_in_previous_frame = len(hands)
         self.vis3d.save_image()
+
+
+
 
 parser = argparse.ArgumentParser()
 parser_tracker = parser.add_argument_group("Tracker arguments")
@@ -162,6 +168,8 @@ while True:
     key = cv2.waitKey(1)
     # Draw hands on open3d canvas
     renderer3d.draw(hands)
+    # socket message send
+    client_socket.sendall(result.encod())
     
     # 화면 상에 손이 있을 경우에만 이미지를 캡쳐
     if renderer3d.nb_hands_in_previous_frame == 1:
@@ -199,5 +207,7 @@ while True:
     
     if key == 27 or key == ord('q'):
         break
+    
 renderer2d.exit()
 tracker.exit()
+client_socket.close()
