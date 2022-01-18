@@ -1,0 +1,8 @@
+prefix=/home/kcg/catkin_ws/devel
+
+Name: bootcamp_rbdl
+Description: Description of bootcamp_rbdl
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 

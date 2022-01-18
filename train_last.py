@@ -18,7 +18,7 @@ test_image = []
 
 frame = []
 k = 0
-"""
+
 # for loop to read and store frames
 for i in tqdm(range(train.shape[0])):
     train_img = image.load_img('train/'+train['image'][i], target_size=(108,192,3))
@@ -45,30 +45,7 @@ for i in tqdm(range(test.shape[0])):
         test_image.append(frame)
         frame = []
         k = 0
-"""
 
-# for loop to read and store frames
-for i in tqdm(range(train.shape[0])):
-    train_img = image.load_img('train/'+train['image'][i], target_size=(108,192,3))
-    train_img = image.img_to_array(train_img)
-    train_img = train_img/255
-    frame.append(train_img)
-    k += 1
-    if k > 25:
-        train_image.append(frame)
-        frame = []
-        k = 0
-    
-for i in tqdm(range(test.shape[0])):
-    test_img = image.load_img('test/'+test['image'][i], target_size=(108,192,3))
-    test_img = image.img_to_array(test_img)
-    test_img = test_img/255
-    frame.append(test_img)
-    k += 1
-    if k > 25:
-        test_image.append(frame)
-        frame = []
-        k = 0
 
 X_train = np.array(train_image)
 X_test = np.array(test_image)
@@ -114,7 +91,7 @@ model.summary()
 
 hist = model.fit(X_train, Y_train, batch_size=1, epochs=100, shuffle=True, validation_data=(X_test, Y_test))
 
-model.save('model/crnn_model3.h5')
+model.save('model/crnn_model.h5')
 print('Saved model successfully')
 
 output = model.predict(X_test)

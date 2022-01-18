@@ -14,11 +14,11 @@ from tensorflow.keras.preprocessing import image
 from tensorflow.keras.models import load_model, Sequential
 import socket
 
-model = load_model('model/crnn_model.h5')
+model = load_model('model/crnn_good.h5')
 print('Loaded model successfully!')
 
-HOST = 'localhost'
-PORT = 9999
+HOST = '192.168.0.67'
+PORT = 12412
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client_socket.connect((HOST, PORT))
 
@@ -179,7 +179,7 @@ while True:
         img = img/255
         img_frame.append(img)
         k += 1
-        if k == 15: # 10개의 프레임을 img_frame list에 모아 img_rt에 추가
+        if k == 15: # 15개의 프레임을 img_frame list에 모아 img_rt에 추가
             img_rt.append(img_frame)
             input_img = np.array(img_rt, dtype=object)
             input_data = np.array(input_img).astype(np.float32) # 자료형 에러 발생으로 float32로 변경
