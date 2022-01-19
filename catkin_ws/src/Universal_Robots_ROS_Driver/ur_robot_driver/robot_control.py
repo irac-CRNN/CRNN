@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 import sys
 sys.path.append("../..")
 from HandTrackerRenderer import HandTrackerRenderer
@@ -15,18 +14,8 @@ from tensorflow.keras.models import load_model
 import roslib; roslib.load_manifest('ur_driver')
 import rospy
 import actionlib
-from std_msgs.msg import String
 from control_msgs.msg import *
 from trajectory_msgs.msg import *
-
-model = load_model('/home/kcg/catkin_ws/src/Universal_Robots_ROS_Driver/ur_robot_driver/model/crnn_good.h5')
-print('Loaded model successfully!')
-
-LINES_HAND = [[0, 1], [1, 2], [2, 3], [3, 4],                   # 엄지
-              [0, 5], [5, 6], [6, 7], [7, 8],                   # 검지
-              [5, 9], [9, 10], [10, 11], [11, 12],              # 중지
-              [9, 13], [13, 14], [14, 15], [15, 16],            # 약지
-              [13, 17], [17, 18], [18, 19], [19, 20], [0, 17]]  # 새끼
 
 class HandTracker3DRenderer:
     def __init__(self, tracker, mode_3d="image", smoothing=True):
@@ -149,76 +138,70 @@ renderer2d = HandTrackerRenderer(tracker)
 pause = False
 hands = []
 
+LINES_HAND = [[0, 1], [1, 2], [2, 3], [3, 4],                   # 엄지
+              [0, 5], [5, 6], [6, 7], [7, 8],                   # 검지
+              [5, 9], [9, 10], [10, 11], [11, 12],              # 중지
+              [9, 13], [13, 14], [14, 15], [15, 16],            # 약지
+              [13, 17], [17, 18], [18, 19], [19, 20], [0, 17]]  # 새끼
+
+global client
+JOINT_NAMES = ['shoulder_pan_joint', 'shoulder_lift_joint', 'elbow_joint', 'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint']
+P = [0., -1.57+1.57/3, -1.57/3, -1.57, -3.14, 0.]
+
+model = load_model('/home/kcg/catkin_ws/src/Universal_Robots_ROS_Driver/ur_robot_driver/model/crnn_good.h5')
+print('Loaded model successfully!')
+
 result = ""
 show_res = ""
 img_rt = []
 img_frame = []
 k = 0
 
-global client
-JOINT_NAMES = ['shoulder_pan_joint', 'shoulder_lift_joint', 'elbow_joint', 'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint']
-P = [0., -1.57+1.57/3, -1.57/3, -1.57, -3.14, 0.]
+rospy.init_node("test_move", anonymous=True, disable_signals=True)
+client = actionlib.SimpleActionClient('follow_joint_trajectory', FollowJointTrajectoryAction)
+print ("Waiting for server...")
+client.wait_for_server()
+print ("Connected to server")
 
-try:
-    rospy.init_node("test_move", anonymous=True, disable_signals=True)
-    client = actionlib.SimpleActionClient('follow_joint_trajectory', FollowJointTrajectoryAction)
-    print ("Waiting for server...")
-    client.wait_for_server()
-    print ("Connected to server")
+while True:
+    
+    frame, hands, bag = tracker.next_frame()
+    if frame is None: break
+    frame = renderer2d.draw(frame, hands, bag)
 
-    while True:
+    if result == [0]:  # clear
+        P = [0., -1.57+1.57/3, -1.57/3, -1.57, -3.14, 0.]
+        show_res = "clear"
+    elif result == [1]:  # down
+        P = [0., -1.57+1.57/3, -3.14/3, -1.57, -3.14, 0.]
+        show_res = "down"
+    elif result == [2]:  # left
+        P = [0., -1.57+3.14/3, -1.57/3, -1.57, -3.14, 0.]
+        show_res = "left"
+    elif result == [3]:  # rest
+        show_res = "rest"
+    elif result == [4]:  # right
+        P = [0., -1.57-2.5/3, -1.57/3, -1.57, -3.14, 0.]
+        show_res = "right"
+    elif result == [5]:  # up
+        P = [0., -1.57, 0., -1.57, -3.14, 0.]
+        show_res = "up"
         
-        frame, hands, bag = tracker.next_frame()
-        if frame is None: break
-        frame = renderer2d.draw(frame, hands, bag)
-
-        if result == [0]:  # clear
-            P = [0., -1.57+1.57/3, -1.57/3, -1.57, -3.14, 0.]
-            show_res = "clear"
-        elif result == [1]:  # down
-            P = [0., -1.57+1.57/3, -3.14/3, -1.57, -3.14, 0.]
-            show_res = "down"
-        elif result == [2]:  # left
-            P = [0., -1.57+3.14/3, -1.57/3, -1.57, -3.14, 0.]
-            show_res = "left"
-        elif result == [3]:  # rest
-            show_res = "rest"
-        elif result == [4]:  # right
-            P = [0., -1.57-2.5/3, -1.57/3, -1.57, -3.14, 0.]
-            show_res = "right"
-        elif result == [5]:  # up
-            P = [0., -1.57, 0., -1.57, -3.14, 0.]
-            show_res = "up"
-        move1()
-        cv2.putText(frame, '%s' %(show_res),(30,60), cv2.FONT_HERSHEY_SIMPLEX, 2, (0,0,0), 2)
-        cv2.imshow("Hand Tracker", frame)
-        key = cv2.waitKey(1)
-        renderer3d.draw(hands)
-        
-        if renderer3d.nb_hands_in_previous_frame == 1:
-            # 캡쳐된 이미지를 불러와 정규화한 다음 img_frame list에 추가
-            img = image.load_img('rt_image.jpg', target_size=(108,192,3))
-            img = image.img_to_array(img)
-            img = img/255
-            img_frame.append(img)
-            k += 1
-            if k == 15: # 15개의 프레임을 img_frame list에 모아 img_rt에 추가
-                img_rt.append(img_frame)
-                input_img = np.array(img_rt, dtype=object)
-                input_data = np.array(input_img).astype(np.float32) # 자료형 에러 발생으로 float32로 변경
-                output = model.predict(input_data)
-                result = np.argmax(output, axis=1)
-                # 새로운 프레임 입력을 위해 초기화
-                img_frame = []
-                img_rt = []
-                k = 0
-        else:
-            # 화면 상에 손이 없을 경우 프레임 저장 배열 및 카운트 초기화
-            img = image.load_img('rt_image.jpg', target_size=(108,192,3))
-            img = image.img_to_array(img)
-            img = img/255
-            img_frame.append(img)
-            img_rt.append(img_frame) 
+    move1()
+    cv2.putText(frame, '%s' %(show_res),(30,60), cv2.FONT_HERSHEY_SIMPLEX, 2, (0,0,0), 2)
+    cv2.imshow("Hand Tracker", frame)
+    key = cv2.waitKey(1)
+    renderer3d.draw(hands)
+    
+    if renderer3d.nb_hands_in_previous_frame == 1:
+        # 캡쳐된 이미지를 불러와 정규화한 다음 img_frame list에 추가
+        img = image.load_img('rt_image.jpg', target_size=(108,192,3))
+        img = image.img_to_array(img)
+        img = img/255
+        img_frame.append(img)
+        k += 1
+        if k == 15: # 15개의 프레임을 img_frame list에 모아 img_rt에 추가
+            img_rt.append(img_frame)
             input_img = np.array(img_rt, dtype=object)
             input_data = np.array(input_img).astype(np.float32) # 자료형 에러 발생으로 float32로 변경
             output = model.predict(input_data)
@@ -227,15 +210,26 @@ try:
             img_frame = []
             img_rt = []
             k = 0
-        
-        if key == 27 or key == ord('q'):
-            break
-        
-    renderer2d.exit()
-    tracker.exit()
+    else:
+        # 화면 상에 손이 없을 경우 프레임 저장 배열 및 카운트 초기화
+        img = image.load_img('rt_image.jpg', target_size=(108,192,3))
+        img = image.img_to_array(img)
+        img = img/255
+        img_frame.append(img)
+        img_rt.append(img_frame) 
+        input_img = np.array(img_rt, dtype=object)
+        input_data = np.array(input_img).astype(np.float32) # 자료형 에러 발생으로 float32로 변경
+        output = model.predict(input_data)
+        result = np.argmax(output, axis=1)
+        # 새로운 프레임 입력을 위해 초기화
+        img_frame = []
+        img_rt = []
+        k = 0
     
-        
-except KeyboardInterrupt:
-    rospy.signal_shutdown("KeyboardInterrupt")
+    if key == 27 or key == ord('q'):
+        break
     
-    raise
+renderer2d.exit()
+tracker.exit()
+rospy.signal_shutdown("KeyboardInterrupt")
+        

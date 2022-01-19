@@ -11,7 +11,7 @@ import cv2
 from o3d_rt import Visu3D
 import numpy as np
 from tensorflow.keras.preprocessing import image
-from tensorflow.keras.models import load_model, Sequential
+from tensorflow.keras.models import load_model
 import socket
 
 model = load_model('model/crnn_good.h5')
